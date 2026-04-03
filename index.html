@@ -1,116 +1,168 @@
-<!DOCTYPE html><html lang="pt-br">
+<!DOCTYPE html>
+<html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Arirang Event 🎟️</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      background-color: #000000;
-      color: white;
-    }header {
-  background: linear-gradient(90deg, #000000, #e50914);
-  padding: 20px;
-  text-align: center;
-  font-size: 26px;
-  font-weight: bold;
-  letter-spacing: 2px;
-}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arirang Event 🎟️</title>
 
-.container {
-  padding: 30px;
-  max-width: 800px;
-  margin: auto;
-}
+<!-- QR Code -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-.evento {
-  background: #111111;
-  border: 1px solid #e50914;
-  border-radius: 15px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 0 15px rgba(229,9,20,0.3);
-}
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-.evento h2 {
-  margin-bottom: 10px;
-  color: #ffffff;
-}
-
-.opcoes {
-  margin-top: 20px;
-}
-
-.ticket {
-  background: #000000;
-  border: 1px solid #ffffff;
-  border-radius: 10px;
-  padding: 15px;
-  margin-bottom: 15px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.ticket strong {
-  color: #e50914;
-}
-
-.botao {
-  background-color: #e50914;
-  border: none;
-  padding: 10px 15px;
-  color: white;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.botao:hover {
-  background-color: #b20710;
-}
-
-  </style>
+<style>
+body{margin:0;font-family:Arial;background:#000;color:#fff}
+header{padding:20px;text-align:center;background:#0a0a0a;border-bottom:2px solid #e50914;font-size:22px}
+.container{max-width:700px;margin:auto;padding:20px}
+.card{background:#111;padding:20px;border-radius:10px;border:1px solid #e50914}
+input,button{width:100%;padding:12px;margin-top:10px;border-radius:6px;border:none}
+button{background:#e50914;color:white;font-weight:bold;cursor:pointer}
+.ticket{border:1px solid #333;padding:15px;margin-top:15px;border-radius:8px}
+.hidden{display:none}
+.success{background:#022e02;padding:15px;border-radius:8px;margin-top:15px}
+.admin{background:#111;margin-top:20px;padding:15px;border-radius:10px;border:1px solid #555}
+</style>
 </head>
-<body><header>
-  ARIRANG EVENT 🔥
-</header><div class="container">
-  <div class="evento">
-    <h2>Show Especial BTS Inspired</h2>
-    <p>Data: 20/07/2026</p>
-    <p>Local: Rio de Janeiro</p><div class="opcoes">
-  <div class="ticket">
-    <div>
-      <p><strong>Ingresso com Kit</strong></p>
-      <p>Entrada + kit exclusivo</p>
-    </div>
-    <div>
-      <p>R$15</p>
-      <button class="botao" onclick="comprar('Kit')">Comprar</button>
-    </div>
-  </div>
+<body>
 
-  <div class="ticket">
-    <div>
-      <p><strong>Entrada sem Kit</strong></p>
-      <p>Entrada gratuita</p>
-    </div>
-    <div>
-      <p>Gratuito</p>
-      <button class="botao" onclick="comprar('SemKit')">Reservar</button>
-    </div>
-  </div>
+<header>ARIRANG EVENT 🔥</header>
+
+<div class="container">
+<div class="card">
+<h2>Show BTS Inspired</h2>
+<p>20/07/2026 - Rio de Janeiro</p>
+
+<h3>Seus dados</h3>
+<input id="nome" placeholder="Seu nome">
+<input id="email" placeholder="Seu email">
+
+<div class="ticket">
+<b>Ingresso com Kit - R$15</b>
+<button onclick="comprar()">Comprar</button>
 </div>
 
-  </div>
-</div><script>
-  function comprar(tipo) {
-    if(tipo === 'Kit'){
-      alert('Você escolheu ingresso com kit (R$15). Aqui podemos integrar PIX/cartão!');
-    } else {
-      alert('Reserva gratuita sem kit confirmada!');
-    }
+<div class="ticket">
+<b>Ingresso sem Kit - Gratuito</b>
+<button onclick="reservar()">Reservar</button>
+</div>
+
+<div id="pixBox" class="hidden">
+<h3>Pagamento via PIX</h3>
+<p>Chave: (21) 98225-1597</p>
+<p>Valor: R$15</p>
+<button onclick="confirmarPagamento()">Já paguei</button>
+</div>
+
+<div id="sucesso" class="success hidden"></div>
+
+</div>
+
+<div class="admin">
+<h3>Painel do dono</h3>
+<button onclick="carregarCompradores()">Atualizar lista</button>
+<div id="lista"></div>
+</div>
+
+</div>
+
+<script>
+// 🔥 CONFIG FIREBASE (já pronto)
+const firebaseConfig = {
+  apiKey: "AIzaSyCHVatRE5ZpqS-AoEWsOP_6uLm1McXNdiA",
+  authDomain: "bgtd-9b950.firebaseapp.com",
+  projectId: "bgtd-9b950",
+  storageBucket: "bgtd-9b950.firebasestorage.app",
+  messagingSenderId: "735696594340",
+  appId: "1:735696594340:web:410d7ff5c87544f0da4d31"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// FUNÇÕES
+
+function comprar(){
+  const nome = document.getElementById('nome').value;
+  const email = document.getElementById('email').value;
+
+  if(!nome || !email){
+    alert('Preencha tudo');
+    return;
   }
-</script></body>
+
+  document.getElementById('pixBox').classList.remove('hidden');
+}
+
+async function confirmarPagamento(){
+  const nome = document.getElementById('nome').value;
+  const email = document.getElementById('email').value;
+
+  const codigo = 'ARIRANG-' + Math.floor(Math.random()*100000);
+
+  await db.collection('compradores').add({
+    nome,
+    email,
+    codigo,
+    pago:true,
+    data: new Date()
+  });
+
+  document.getElementById('pixBox').classList.add('hidden');
+
+  document.getElementById('sucesso').classList.remove('hidden');
+  document.getElementById('sucesso').innerHTML = `
+    ✅ Compra confirmada!<br><br>
+    Código: <b>${codigo}</b><br>
+    <div id="qrcode"></div>
+  `;
+
+  new QRCode(document.getElementById("qrcode"), codigo);
+}
+
+async function reservar(){
+  const nome = document.getElementById('nome').value;
+
+  if(!nome){
+    alert('Preencha seu nome');
+    return;
+  }
+
+  const codigo = 'FREE-' + Math.floor(Math.random()*100000);
+
+  await db.collection('compradores').add({
+    nome,
+    codigo,
+    pago:false,
+    data: new Date()
+  });
+
+  document.getElementById('sucesso').classList.remove('hidden');
+  document.getElementById('sucesso').innerHTML = `
+    🎟️ Reserva gratuita<br>
+    Código: <b>${codigo}</b><br>
+    <div id="qrcode"></div>
+  `;
+
+  new QRCode(document.getElementById("qrcode"), codigo);
+}
+
+async function carregarCompradores(){
+  const lista = document.getElementById('lista');
+  lista.innerHTML = 'Carregando...';
+
+  const snapshot = await db.collection('compradores').orderBy('data','desc').get();
+
+  let html = '';
+  snapshot.forEach(doc => {
+    const c = doc.data();
+    html += `<p>${c.nome || 'Sem nome'} - ${c.codigo} - ${c.pago ? 'Pago' : 'Gratuito'}</p>`;
+  });
+
+  lista.innerHTML = html || 'Nenhum comprador ainda';
+}
+</script>
+
+</body>
 </html>
